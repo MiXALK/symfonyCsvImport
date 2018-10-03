@@ -21,7 +21,8 @@
         "symfony/twig-bundle": "*",
         "symfony/validator": "*",
         "symfony/web-link": "*",
-        "symfony/yaml": "*"
+        "symfony/yaml": "*",
+        "league/csv": "^8.0"
     },
     "require-dev": {
         "symfony/debug-pack": "*",
