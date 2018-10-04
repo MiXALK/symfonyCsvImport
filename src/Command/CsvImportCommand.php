@@ -8,6 +8,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Console\Input\InputArgument;
 use League\Csv\Reader;
 
 class CsvImportCommand extends Command
@@ -38,7 +39,8 @@ class CsvImportCommand extends Command
     protected function configure()
     {
         $this->setName('csv:import')
-             ->setDescription('Imports the mock CSV data file');
+             ->setDescription('Imports the mock CSV data file')
+             ->addArgument('test_mode', InputArgument::OPTIONAL, 'Is it a test mod?');
     }
 
     /**
@@ -75,18 +77,18 @@ class CsvImportCommand extends Command
             $product->setStockLevel($row['Stock']);
             $product->setPrice($row['Cost in GBP']);
 
-
+            //Import Rules
             if ($row['Discontinued'] == "yes") {
                 $product->setDtmDiscontinued(new \DateTime());
             } else {
                 $product->setDtmDiscontinued(null);
             }
 
-            if (($row['Cost in GBP'] > 5) and ($row['Stock'] > 10) and ($row['Cost in GBP'] < 1000)) {
+            if (($row['Cost in GBP'] >= 5) and ($row['Stock'] >= 10) and ($row['Cost in GBP'] <= 1000)) {
                 $this->em->persist($product);
                 $successCounter = (string)++$successCounter;
             } else {
-                $skippedProducts[] = $row['Product Code'];
+                $skippedProducts[] = ' '.$row['Product Code'];
             }
 
             $io->progressAdvance();
@@ -96,10 +98,18 @@ class CsvImportCommand extends Command
 
         $skippedReport = implode(",", $skippedProducts);
 
-        $this->em->flush();
+        $testMode = $input->getArgument('test_mode');
+
+
+        //save products to database if test mode is not used
+        if ($testMode !== "test") {
+            $this->em->flush();
+        }
 
         $io->progressFinish();
-        $io->success($successCounter.' processed successfully, '.$skippedCounter.' skipped. '."\n".'Next products skipped: '
-                    .$skippedReport.'.');
+
+        //report import result
+        $io->success($successCounter.' processed successfully!');
+        $io->warning($skippedCounter.' skipped. '."\n".'Next products skipped:'.$skippedReport.'.');
     }
 }
